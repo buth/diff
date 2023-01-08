@@ -20,10 +20,46 @@ func maxk(n, d int) int {
 	return n
 }
 
+// Position represents a point in the source input.
+type Position struct {
+	Index  int
+	Line   int
+	Column int
+}
+
 type differ[T comparable] struct {
-	a, b   []T
-	v0, v1 []int
-	edit   func(start, end int, replacement []T)
+	a, b      []T
+	v0, v1    []int
+	index     int // the absolute position in the source input.
+	isNewline func(T) bool
+	line      int
+	column    int
+	edit      func(start, end Position, replacement []T)
+}
+
+func (df *differ[T]) position() Position {
+	return Position{
+		Index:  df.index,
+		Line:   df.line,
+		Column: df.column,
+	}
+}
+
+func (df *differ[T]) count(list []T) {
+	df.index += len(list)
+	if df.isNewline == nil {
+		df.column = df.index
+		return
+	}
+
+	for _, e := range list {
+		if df.isNewline(e) {
+			df.line++
+			df.column = 0
+		} else {
+			df.column++
+		}
+	}
 }
 
 func (df *differ[T]) middlesnake(a, b []T) (int, int, int, int, int) {
@@ -109,14 +145,19 @@ func (df *differ[T]) middlesnake(a, b []T) (int, int, int, int, int) {
 
 func (df *differ[T]) diff(x, y, u, v int) {
 	ma := df.a[x:u]
+	mb := df.b[y:v]
 	if len(ma) == 0 {
-		df.edit(y, v, nil)
+		s := df.position()
+		df.count(mb)
+		e := df.position()
+		df.edit(s, e, nil)
 		return
 	}
 
-	mb := df.b[y:v]
 	if len(mb) == 0 {
-		df.edit(y, y, ma)
+		p := df.position()
+		df.edit(p, p, ma)
+		df.count(mb)
 		return
 	}
 
@@ -126,31 +167,42 @@ func (df *differ[T]) diff(x, y, u, v int) {
 	}
 
 	if d == 1 {
+
 		// When d == 1, (mx, my) will be the endpoint of the single edit.
 		if len(ma) > len(mb) {
-			df.edit(y+my, y+my, ma[mx-1:mx])
+			df.count(mb[:my])
+			p := df.position()
+			df.edit(p, p, ma[mx-1:mx])
 		} else {
-			df.edit(y+my-1, y+my, nil)
+			h := my - 1
+			df.count(mb[:h])
+			s := df.position()
+			df.count(mb[h:my])
+			e := df.position()
+			df.edit(s, e, nil)
 		}
 
+		df.count(mb[my:])
 		return
 	}
 
 	df.diff(x, y, x+mx, y+my)
+	df.count(mb[my:mv])
 	df.diff(x+mu, y+mv, u, v)
 }
 
 // Diff will call edit in order for each edit of b required to produce a. Start
 // and end locations are relative to the begining of b, and the replacement
 // slice will either be nil or a subslice of a.
-func Diff[T comparable](a, b []T, edit func(start, end int, replacement []T)) {
+func Diff[T comparable](a, b []T, isNewline func(T) bool, edit func(start, end Position, replacement []T)) {
 	max := len(a) + len(b) + 1
 	df := &differ[T]{
-		a:    a,
-		b:    b,
-		v0:   make([]int, max),
-		v1:   make([]int, max),
-		edit: edit,
+		a:         a,
+		b:         b,
+		v0:        make([]int, max),
+		v1:        make([]int, max),
+		edit:      edit,
+		isNewline: isNewline,
 	}
 
 	df.diff(0, 0, len(a), len(b))

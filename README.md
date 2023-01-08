@@ -18,7 +18,7 @@ type edit[T comparable] struct {
 
 func listOfEdits[T comparable](dst, src []T) []edit[T] {
 	var edits []edit[T]
-	diff.Diff(dst, src, func(start, end int, replacement []T) {
+	diff.Diff(dst, src, nil, func(start, end int, replacement []T) {
 		edits = append(edits, edit[T]{
 			start:       start,
 			end:         end,
