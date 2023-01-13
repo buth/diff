@@ -1,5 +1,7 @@
 # diff
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/buth/diff.svg)](https://pkg.go.dev/github.com/buth/diff)
+
 This package provides a generic implementation of the [Myers diff
 algorithm](http://www.xmailserver.org/diff2.pdf) that produces sequential edits.
 
@@ -22,7 +24,8 @@ func listOfEdits[T comparable](dst, src []T) []edit[T] {
 		edits = append(edits, edit[T]{
 			start:       start,
 			end:         end,
-			replacement: replacement})
+			replacement: replacement
+		})
 	})
 
 	return edits
