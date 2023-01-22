@@ -14,13 +14,13 @@ using a callback provided to the `Diff` method.
 import "github.com/buth/diff"
 
 type edit[T comparable] struct {
-	start, end  int
+	start, end  diff.Position
 	replacement []T
 }
 
 func listOfEdits[T comparable](dst, src []T) []edit[T] {
 	var edits []edit[T]
-	diff.Diff(dst, src, nil, func(start, end int, replacement []T) {
+	diff.Diff(dst, src, nil, func(start, end diff.Position, replacement []T) {
 		edits = append(edits, edit[T]{
 			start:       start,
 			end:         end,
@@ -44,9 +44,9 @@ func applyEdits[T comparable](src []T, edits []edit[T]) []T {
 
 	i := 0
 	for _, edit := range edits {
-		dst = append(dst, src[i:edit.start]...)
+		dst = append(dst, src[i:edit.start.Index]...)
 		dst = append(dst, edit.replacement...)
-		i = edit.end
+		i = edit.end.Index
 	}
 
 	return append(dst, src[i:]...)
